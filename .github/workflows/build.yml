@@ -15,17 +15,40 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
-      - name: Build
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Web fayllar
         run: |
           mkdir -p www native
           cp index.html manifest.webmanifest icon-192.png icon-512.png www/
           unzip -o native.zip -d native
-          npm install
-          npx cap add android
-          python3 inject.py
-          npx cap sync android
+      - run: npm install
+      - run: npx cap add android
+      - name: Native kod
+        run: python3 inject.py
+      - name: Ikonka
+        run: |
+          pip install pillow
+          python3 -c "
+          from PIL import Image
+          import os
+          R = 'android/app/src/main/res'
+          for n, s in [('mdpi',48),('hdpi',72),('xhdpi',96),('xxhdpi',144),('xxxhdpi',192)]:
+              im = Image.open('icon-512.png').convert('RGBA').resize((s, s), Image.LANCZOS)
+              for f in ('ic_launcher','ic_launcher_round','ic_launcher_foreground'):
+                  im.save(R + '/mipmap-' + n + '/' + f + '.png')
+          "
+          rm -rf android/app/src/main/res/mipmap-anydpi-v26
+      - run: npx cap sync android
+      - name: Imzo kaliti
+        run: |
           mkdir -p ~/.android
           cp debug.keystore ~/.android/debug.keystore
+      - name: versionCode
+        run: sed -i "s/versionCode [0-9]*/versionCode ${{ github.run_number }}/" android/app/build.gradle
+      - name: APK yigish
+        run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug
