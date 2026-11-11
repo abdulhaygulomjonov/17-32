@@ -1,0 +1,8 @@
+{
+  "appId": "uz.sanalar.app",
+  "appName": "17-32",
+  "webDir": "www",
+  "server": { "androidScheme": "https" },
+  "android": { "backgroundColor": "#0b1620" },
+  "plugins": { "CapacitorHttp": { "enabled": true } }
+}

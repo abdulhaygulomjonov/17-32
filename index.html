@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b1620">
+<link rel="manifest" href="manifest.webmanifest">
+<title>17-32</title>
+<style>
+:root{--bg:#f3f7f8;--card:#fff;--tx:#10222b;--mu:#5d7480;--bd:#dbe5e9;--ac:#12968a;--onac:#fff;--rd:#c2412f;--ok:#12968a}
+@media (prefers-color-scheme:dark){:root{--bg:#0b1620;--card:#12232f;--tx:#e8f1f4;--mu:#8fa9b5;--bd:#21394a;--ac:#2cc4b4;--onac:#06211e;--rd:#f27d6b;--ok:#2cc4b4}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:16px}
+body{padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
+.scr{display:none;min-height:100vh;padding:0 16px 40px}
+.scr.on{display:block}
+.top{display:flex;align-items:center;gap:8px;padding:14px 0 10px;position:sticky;top:0;background:var(--bg);z-index:5}
+.top h1{font-size:22px;margin:0;flex:1}
+.top button.back{background:none;border:0;color:var(--tx);font-size:26px;padding:4px 10px 4px 0;line-height:1}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:20px;padding:14px 16px;margin-bottom:12px}
+.row{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--bd)}
+.row:first-child{border-top:0}
+.row .t{flex:1;min-width:0;overflow-wrap:anywhere}
+.row .t b{display:block;font-size:17px}
+.row .t small{display:block;color:var(--mu);margin-top:2px;font-size:14px}
+.ico{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;background:rgba(18,150,138,.14);font-size:23px;flex:none}
+button{font:inherit;border:0;border-radius:12px;padding:10px 14px;background:var(--ac);color:var(--onac);font-weight:600}
+button.g{background:transparent;color:var(--ac);border:1px solid var(--bd)}
+button.dn{background:transparent;color:var(--rd);border:1px solid var(--bd)}
+button:disabled{opacity:.45}
+.ok{color:var(--ok);font-weight:700}
+.bad{color:var(--rd);font-weight:700}
+.note{color:var(--mu);font-size:14px;line-height:1.45;margin:6px 0}
+.warn{color:var(--rd);font-size:14px;line-height:1.45;margin:8px 0}
+input[type=text],input[type=number],select{width:100%;font:inherit;padding:12px;border-radius:12px;border:1px solid var(--bd);background:transparent;color:inherit}
+.add{display:flex;gap:8px;margin-top:10px}
+.add input{flex:1;min-width:0}
+.empty{color:var(--mu);padding:14px 0;text-align:center}
+h3{margin:14px 0 4px;font-size:15px;color:var(--mu);font-weight:600}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(30px + env(safe-area-inset-bottom,0));background:var(--tx);color:var(--bg);padding:10px 16px;border-radius:12px;z-index:99;max-width:calc(100% - 32px);font-size:15px}
+#sheet{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-end;z-index:50}
+#sheet.on{display:flex}
+#sheet .in{background:var(--card);width:100%;border-radius:22px 22px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom,0));max-height:90vh;overflow:auto}
+#sheet h2{margin:0 0 10px;font-size:19px}
+.btns{display:flex;gap:8px;margin-top:12px}
+.btns button{flex:1}
+</style>
+</head>
+<body>
+
+<!-- ===== bosh sahifa ===== -->
+<div class="scr on" id="s-home">
+ <div class="top"><h1>17-32</h1></div>
+ <div id="setupBox"></div>
+ <div class="card">
+  <div class="row"><div class="ico">⏱</div><div class="t"><b>Ilovalarni cheklash</b><small id="hLim"></small></div><button class="g" onclick="go('lim')">Ochish</button></div>
+  <div class="row"><div class="ico">🌐</div><div class="t"><b>Saytlarni bloklash</b><small id="hSite"></small></div><button class="g" onclick="go('site')">Ochish</button></div>
+  <div class="row"><div class="ico">🛡</div><div class="t"><b>So‘zlarni bloklash</b><small id="hWord"></small></div><button class="g" onclick="go('word')">Ochish</button></div>
+  <div class="row"><div class="ico">⛔</div><div class="t"><b>Qattiq rejimni bekor qilish</b><small id="hRel"></small></div><button class="g" onclick="go('rel')">Ochish</button></div>
+ </div>
+</div>
+
+<!-- ===== ilovalarni cheklash ===== -->
+<div class="scr" id="s-lim">
+ <div class="top"><button class="back" onclick="history.back()" aria-label="Orqaga">‹</button><h1>Ilovalarni cheklash</h1></div>
+ <div id="limA11y"></div>
+ <div class="card" id="limList"></div>
+ <button style="width:100%" onclick="limPick()">Limit qo‘shish</button>
+ <p class="note">Limit qo‘yilgach, 7 kun davomida uni tahrirlab ham, olib tashlab ham bo‘lmaydi. Limit tugasa, ilova shu kunga bloklanadi.</p>
+</div>
+
+<!-- ===== saytlarni bloklash ===== -->
+<div class="scr" id="s-site">
+ <div class="top"><button class="back" onclick="history.back()" aria-label="Orqaga">‹</button><h1>Saytlarni bloklash</h1></div>
+ <p class="note">Ro‘yxatdagi saytlar telefondagi barcha brauzer va ilovalarda ochilmaydi (lokal VPN orqali DNS filtr, tashqi serversiz). Qo‘shimcha himoya: maxsus imkoniyat brauzer manzil satrini tekshiradi.</p>
+ <div class="card">
+  <div class="row"><div class="ico">🌐</div><div class="t"><b>DNS filtr (VPN)</b><small id="sbS1"></small></div><button id="sbTog" onclick="sbToggle()">Yoqish</button></div>
+  <div class="row"><div class="ico">⚙</div><div class="t"><b>Maxsus imkoniyat</b><small id="sbS2"></small></div><button id="sbA11y" onclick="openA11y()">Yoqish</button></div>
+  <div class="row"><div class="ico">⛔</div><div class="t"><b>Boshqa VPN larni bloklash</b><small id="sbS3"></small></div><button id="sbNoV" onclick="sbNoVpn()">Yoqish</button></div>
+ </div>
+ <p class="warn" id="sbWarn" hidden></p>
+ <div class="add"><input id="sbIn" type="text" inputmode="url" autocapitalize="none" autocomplete="off" spellcheck="false" placeholder="masalan: example.com"><button onclick="sbAdd()">Qo‘shish</button></div>
+ <div class="card" id="sbList" style="margin-top:12px"></div>
+ <div class="card">
+  <div class="row"><div class="t"><b>Zahira nusxa</b><small>Ro‘yxat faylga saqlanadi (Yuklashlar)</small></div><button class="g" onclick="backupSites()">Saqlash</button></div>
+  <div class="row"><div class="t"><b>Zahiradan tiklash</b><small>Oldin saqlangan .json fayl</small></div><button class="g" onclick="$('sbFile').click()">Tanlash</button></div>
+  <input type="file" id="sbFile" accept=".json,application/json" hidden onchange="restoreSites(this.files);this.value=''">
+ </div>
+</div>
+
+<!-- ===== so'zlarni bloklash ===== -->
+<div class="scr" id="s-word">
+ <div class="top"><button class="back" onclick="history.back()" aria-label="Orqaga">‹</button><h1>So‘zlarni bloklash</h1></div>
+ <div id="alA11y"></div>
+ <div class="card"><div class="row"><div class="ico">🛡</div><div class="t"><b>So‘z filtri</b><small id="alS"></small></div><button id="alTog" onclick="alTog()">Yoqish</button></div></div>
+ <h3>Sezuvchi so‘zlar ro‘yxati</h3>
+ <div class="card" id="alList"></div>
+ <div class="add"><input id="alWi" type="text" placeholder="So‘z yoki ibora" autocapitalize="none" autocorrect="off" spellcheck="false" onkeydown="if(event.key==='Enter')alAdd()"><button onclick="alAdd()">Qo‘shish</button></div>
+ <p class="note">Bu so‘zlar yozilganda yoki sahifada chiqqanda filtr ularni o‘chiradi/yopadi. Filtr yoqilgach, ro‘yxatdan so‘z olib tashlab bo‘lmaydi. O‘chirilgan so‘zlar soni: <b id="alHits">0</b></p>
+ <div class="card">
+  <div class="row"><div class="t"><b>Zahira nusxa</b><small>Ro‘yxat faylga saqlanadi (Yuklashlar)</small></div><button class="g" onclick="backupWords()">Saqlash</button></div>
+  <div class="row"><div class="t"><b>Zahiradan tiklash</b><small>Oldin saqlangan .json fayl</small></div><button class="g" onclick="$('alFile').click()">Tanlash</button></div>
+  <input type="file" id="alFile" accept=".json,application/json" hidden onchange="restoreWords(this.files);this.value=''">
+ </div>
+</div>
+
+<!-- ===== qattiq rejimni bekor qilish ===== -->
+<div class="scr" id="s-rel">
+ <div class="top"><button class="back" onclick="history.back()" aria-label="Orqaga">‹</button><h1>Qattiq rejimni bekor qilish</h1></div>
+ <div class="card">
+  <p class="note" style="margin-top:0">Barcha kunlik limitlar, vaqtli bloklar, jadvallar, saytlar va so‘z filtri bekor qilinadi. Shundan keyin ilovani telefondan o‘chirish mumkin bo‘ladi.</p>
+  <p class="note" id="relInfo"></p>
+  <button class="dn" style="width:100%" id="relBtn" onclick="release()">Barcha qattiq rejimlarni o‘chirish</button>
+ </div>
+</div>
+
+<div id="sheet"><div class="in" id="sheetIn"></div></div>
+<div id="toast" hidden></div>
+
+<script>
+var A=function(){return window.AndroidAlarm;};
+function $(i){return document.getElementById(i);}
+function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function J(f,d){try{var r=A()[f].apply(A(),Array.prototype.slice.call(arguments,2));return typeof r==='string'?JSON.parse(r):r;}catch(e){return d;}}
+function S(f){try{var r=A()[f].apply(A(),Array.prototype.slice.call(arguments,1));return r==null?'':String(r);}catch(e){return 'err';}}
+function p2(n){return (n<10?'0':'')+n;}
+var tt=null;
+function toast(m){var t=$('toast');t.textContent=m;t.hidden=false;clearTimeout(tt);tt=setTimeout(function(){t.hidden=true;},3200);}
+function lget(k){try{return localStorage.getItem(k);}catch(e){return null;}}
+function lset(k,v){try{localStorage.setItem(k,v);}catch(e){}}
+var NOAND='Bu ilova faqat Android ilovada (APK) ishlaydi.';
+
+/* ---------- ekranlar (orqaga tugmasi uchun hash tarixi) ---------- */
+var CUR='home';
+function go(n){location.hash=n==='home'?'':n;}
+function show(n){
+ ['home','lim','site','word','rel'].forEach(function(x){$('s-'+x).classList.toggle('on',x===n);});
+ CUR=n;window.scrollTo(0,0);paint();}
+window.addEventListener('hashchange',function(){var n=(location.hash||'').slice(1);if(!$('s-'+n))n='home';closeSheet();show(n);});
+
+/* ---------- ruxsatlar (birinchi sozlash) ---------- */
+var PL=[['notif','Bildirishnomalar'],['overlay','Boshqa ilovalar ustida ko‘rsatish (bloklash oynasi uchun)'],['battery','Batareya cheklovisiz ishlash'],['auto','Avtoishga tushirish va fonda ishlash']];
+function items(){
+ var st=J('permState',{}),bs=J('blkState',{}),sb=J('sbGet',{}),r=[];
+ PL.forEach(function(x){if(x[0]==='auto'&&st.auto===undefined)return;r.push([x[0],x[1],st[x[0]]!==false]);});
+ r.push(['vpn','Himoya VPN (DNS filtr)',!!sb.perm&&!!sb.run]);
+ r.push(['a11y','Maxsus imkoniyat (“17-32 bloklash” xizmati)',!!bs.a11y&&st.svc!==false]);
+ return r;}
+function ask(k){try{if(k==='a11y')A().blkOpenA11y();else if(k==='vpn')A().sbEnable();else A().perm(k);}catch(e){}}
+function paintSetup(){
+ var box=$('setupBox');
+ if(!A()){box.innerHTML='<div class="card"><p class="note" style="margin:0">'+NOAND+'</p></div>';return;}
+ var all=items(),miss=all.filter(function(x){return !x[2];});
+ if(!miss.length){box.innerHTML='';lset('setup-done','1');relLockTry(all);return;}
+ box.innerHTML='<div class="card"><b>Ishga tushirish uchun ruxsatlar</b><p class="note">Himoya to‘liq ishlashi uchun quyidagilarni bering. Hammasi berilgach, “Qattiq rejimni bekor qilish” 40 kunga yopiladi.</p>'
+  +all.map(function(x){return '<div class="row"><div class="t">'+E(x[1])+'</div>'+(x[2]?'<span class="ok">✓</span>':'<button onclick="ask(\''+x[0]+'\')">'+(x[0]==='vpn'||x[0]==='a11y'?'Yoqish':'Ruxsat')+'</button>')+'</div>';}).join('')+'</div>';}
+function relLockTry(all){try{if(A()&&A().relLockStart&&lget('setup-done')==='1'&&!(all||items()).some(function(x){return !x[2];}))A().relLockStart();}catch(e){}}
+
+/* ---------- blok oynasi matnlari (native ekran uchun) ---------- */
+function sendTexts(){try{A().blkTexts(JSON.stringify({t:'Bu ilova bloklangan',s:'Hozir bu ilovadan foydalana olmaysiz',b:'Bosh ekranga',lt:'Kunlik limit tugadi',nt:'Nomaqbul kontent to‘xtatildi',ns:'Filtr bu qidiruv yoki sahifani yopdi'}));}catch(e){}}
+
+/* ---------- sheet ---------- */
+function openSheet(h){$('sheetIn').innerHTML=h;$('sheet').classList.add('on');}
+function closeSheet(){$('sheet').classList.remove('on');}
+$('sheet').addEventListener('click',function(e){if(e.target===$('sheet'))closeSheet();});
+
+/* ================= 1. ILOVALARNI CHEKLASH ================= */
+function fmtMin(ms){var m=Math.floor(ms/60000),h=Math.floor(m/60);return h?h+' soat '+(m%60)+' daqiqa':m+' daqiqa';}
+function fmtLeft(ms){var m=Math.ceil(ms/60000),d=Math.floor(m/1440);m-=d*1440;var h=Math.floor(m/60);return (d?d+' kun ':'')+p2(h)+':'+p2(m%60);}
+function limGet(){return J('limGet',{on:false,list:{}});}
+function apps(){return J('blkApps',[]);}
+function paintLim(){
+ var a11y=$('limA11y'),bs=J('blkState',{});
+ a11y.innerHTML=(A()&&!bs.a11y)?'<div class="card"><div class="row"><div class="t">Maxsus imkoniyat (Accessibility) xizmatini yoqing</div><button onclick="openA11y()">Sozlamalar</button></div></div>':'';
+ var L=limGet(),ks=Object.keys(L.list||{}),nm={};apps().forEach(function(x){nm[x.p]=x.n;});
+ if(!A()){$('limList').innerHTML='<div class="empty">'+NOAND+'</div>';return;}
+ $('limList').innerHTML=ks.length?ks.map(function(k){var v=L.list[k],hit=v.until>Date.now(),lk=v.lock>0;
+  return '<div class="row"><div class="t"><b>'+E(nm[k]||k)+'</b><small class="'+(hit?'bad':'')+'">'+(hit?'Limit tugadi':fmtMin(v.used)+' / '+fmtMin(v.m*60000))+(lk?' · qulf: '+fmtLeft(v.lock):'')+'</small></div>'
+   +(lk?'':'<button class="g" data-p="'+E(k)+'" onclick="limPick(this.dataset.p)">Tahrir</button><button class="dn" data-p="'+E(k)+'" onclick="limDel(this.dataset.p)">×</button>')+'</div>';}).join(''):'<div class="empty">Hali limit qo‘yilmagan.</div>';
+}
+function limAll(){var L=limGet(),o={};Object.keys(L.list||{}).forEach(function(k){o[k]={m:L.list[k].m,d:L.list[k].d||[]};});return o;}
+function limPick(p0){
+ if(!A()){toast(NOAND);return;}
+ var L=limGet(),ap=apps(),cur=p0?(L.list||{})[p0]:null;
+ if(p0&&!ap.some(function(x){return x.p===p0;}))ap.push({p:p0,n:p0});
+ ap=ap.filter(function(x){var c=(L.list||{})[x.p];return p0?x.p===p0:!(c&&c.lock>0);});
+ openSheet('<h2>Kunlik limit</h2><select id="limP"'+(p0?' disabled':'')+'>'+ap.map(function(x){var c=(L.list||{})[x.p];return '<option value="'+E(x.p)+'">'+E(x.n)+(c&&!p0?' ('+c.m+' daqiqa)':'')+'</option>';}).join('')+'</select>'
+  +'<div style="margin:8px 0"><input type="number" id="limM" min="1" max="1440" value="'+(cur?cur.m:'')+'" placeholder="Kuniga necha daqiqa"></div>'
+  +'<input type="text" id="limD" value="'+E(cur&&cur.d?cur.d.join(', '):'')+'" placeholder="Saytlari (ixtiyoriy): youtube.com, instagram.com" autocapitalize="none" autocorrect="off" spellcheck="false">'
+  +'<div class="btns"><button onclick="limSave()">Saqlash</button><button class="g" onclick="closeSheet()">Bekor</button></div>');}
+function limSave(){
+ var p=($('limP')||{}).value,m=Math.round(+($('limM')||{}).value),d=(($('limD')||{}).value||'').split(/[\s,;]+/).filter(Boolean);
+ if(!p)return;
+ if(!(m>=1&&m<=1440)){toast('Limit 1 dan 1440 daqiqagacha bo‘lsin');return;}
+ if(!confirm('Limit qo‘yilgach 7 kun davomida uni tahrirlab ham, olib tashlab ham bo‘lmaydi. Davom etasizmi?'))return;
+ var o=limAll();o[p]={m:m,d:d};var r=S('limSet',JSON.stringify(o));
+ if(r==='locked'){toast('Limit 7 kun davomida o‘zgartirib bo‘lmaydi.');return;}
+ if(r!=='ok'){toast('Saqlab bo‘lmadi');return;}
+ closeSheet();paint();}
+function limDel(p){
+ if(!confirm('Limit olib tashlansinmi?'))return;
+ var o=limAll();delete o[p];var r=S('limSet',JSON.stringify(o));
+ if(r==='locked')toast('Limit 7 kun davomida o‘zgartirib yoki olib tashlab bo‘lmaydi.');
+ paint();}
+function openA11y(){try{A().blkOpenA11y();}catch(e){}}
+
+/* ================= 2. SAYTLARNI BLOKLASH ================= */
+function sbGet(){return J('sbGet',null);}
+function paintSite(){
+ var s=sbGet();
+ if(!s){$('sbS1').textContent=NOAND;$('sbS2').textContent='';$('sbS3').textContent='';$('sbList').innerHTML='';return;}
+ $('sbS1').textContent=!s.on?'O‘chiq':(!s.vpn?'Faqat maxsus imkoniyat rejimi (VPNsiz)':(s.run?'Yoniq: DNS filtr ishlayapti':'VPN to‘xtagan (boshqa VPN yoniq bo‘lishi mumkin). Maxsus imkoniyat ishlayveradi'));
+ $('sbS3').textContent=s.novpn?'Yoniq: boshqa VPN ilova va ulanish so‘rovi yopiladi':'O‘chiq';
+ $('sbNoV').textContent=(s.on&&s.novpn)?'Qulflangan':'Yoqish';$('sbNoV').disabled=!!(s.on&&s.novpn);
+ $('sbTog').textContent=s.on?'Qulflangan':'Yoqish';$('sbTog').disabled=!!s.on;
+ $('sbS2').textContent=s.a11y?'Yoniq: brauzer manzil satri tekshiriladi':'O‘chiq: sozlamalarda “17-32 bloklash” xizmatini yoqing';
+ $('sbA11y').hidden=!!s.a11y;
+ var w=$('sbWarn');
+ if(s.pdns==='hostname'){w.hidden=false;w.textContent='Telefonda “Shaxsiy DNS” (maxsus host) yoqilgan: DNS filtr aylanib o‘tilishi mumkin. Sozlamalar → Tarmoq → Shaxsiy DNS ni “Avto” yoki “O‘chiq” qiling. Maxsus imkoniyat brauzerlarni baribir tekshiradi.';}else w.hidden=true;
+ var d=s.domains||[];
+ $('sbList').innerHTML=d.length?d.map(function(x,i){return '<div class="row"><div class="t"><b>'+E(x)+'</b></div><button class="dn" onclick="sbDel('+i+')">×</button></div>';}).join(''):'<div class="empty">Ro‘yxat bo‘sh. Domen qo‘shing.</div>';}
+function sbRefresh(){paintSite();setTimeout(paint,700);setTimeout(paint,2000);}
+window.sbRefresh=sbRefresh; /* native (VPN ruxsati natijasi) shuni chaqiradi */
+function sbToggle(){
+ if(!A()){toast(NOAND);return;}
+ var s=sbGet();if(s&&s.on){toast('Faqat “Qattiq rejimni bekor qilish” orqali o‘chadi.');return;}
+ var r=S('sbEnable');
+ if(r==='err'){toast('Yoqib bo‘lmadi.');return;}
+ if(r==='ok'&&s&&!s.a11y&&confirm('Qo‘shimcha himoya uchun “17-32 bloklash” maxsus imkoniyatini yoqing. Sozlamalar ochilsinmi?'))openA11y();
+ sbRefresh();}
+function sbNoVpn(){
+ if(!A()){toast(NOAND);return;}
+ var s=sbGet();if(!s)return;
+ if(s.on&&s.novpn){toast('Faqat “Qattiq rejimni bekor qilish” orqali o‘chadi.');return;}
+ S('sbNoVpn',true);paintSite();}
+function sbAdd(){
+ if(!A()){toast(NOAND);return;}
+ var v=$('sbIn').value.trim();if(!v)return;
+ var s=sbGet(),d=((s&&s.domains)||[]).slice(),n=d.length;
+ d.push(v);S('sbDomains',JSON.stringify(d));
+ var s2=sbGet(),n2=((s2&&s2.domains)||[]).length;
+ if(n2<=n){toast('Domen noto‘g‘ri yoki ro‘yxatda bor. Masalan: example.com');return;}
+ $('sbIn').value='';paintSite();}
+function sbDel(i){
+ var s=sbGet(),d=((s&&s.domains)||[]).slice();
+ if(i<0||i>=d.length)return;
+ if(!confirm(d[i]+' ro‘yxatdan olib tashlansinmi?'))return;
+ d.splice(i,1);S('sbDomains',JSON.stringify(d));paintSite();}
+
+/* zahira nusxa */
+function saveFile(prefix,type,key,list){
+ if(!A()||!A().saveVaultFile){toast(NOAND);return;}
+ if(!list.length){toast('Ro‘yxat bo‘sh.');return;}
+ var d=new Date(),name='himoya-'+prefix+'-zahira-'+d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())+'.json',o={app:'himoya',type:type,v:1};o[key]=list;
+ try{var u=new TextEncoder().encode(JSON.stringify(o)),bin='',CH=0x8000;
+  for(var i=0;i<u.length;i+=CH)bin+=String.fromCharCode.apply(null,u.subarray(i,i+CH));
+  var r=A().saveVaultFile(name,'application/json',btoa(bin));
+  toast(r===true||r==='true'?'Saqlandi: Yuklashlar → '+name:'Saqlab bo‘lmadi.');}catch(e){toast('Saqlab bo‘lmadi.');}}
+function readList(files,type,key,cb){
+ var f=files&&files[0];if(!f)return;var fr=new FileReader();
+ fr.onload=function(){try{var o=JSON.parse(String(fr.result)),n=Array.isArray(o)?o:(o&&o.type===type?o[key]:null);
+  if(!Array.isArray(n))throw 1;n=n.map(function(x){return String(x).trim();}).filter(Boolean);if(!n.length)throw 1;cb(n);}catch(e){toast('Zahira fayli noto‘g‘ri.');}};
+ fr.readAsText(f);}
+function backupSites(){var s=sbGet();saveFile('saytlar','sites','domains',(s&&s.domains)||[]);}
+function restoreSites(files){if(!A()||!A().sbGet){toast(NOAND);return;}
+ readList(files,'sites','domains',function(n){
+  var s=sbGet(),cur=((s&&s.domains)||[]).length;
+  if(cur&&!confirm('Joriy ro‘yxat ('+cur+' ta sayt) zahiradagi ro‘yxat bilan almashtiriladi. Davom etasizmi?'))return;
+  S('sbDomains',JSON.stringify(n));var s2=sbGet();paintSite();
+  toast('Tiklandi: ro‘yxatda '+(((s2&&s2.domains)||[]).length)+' ta sayt.');});}
+
+/* ================= 3. SO'ZLARNI BLOKLASH ================= */
+function alState(){return J('alGet',{on:false,words:[],left:-1,hits:0,a11y:false});}
+function paintWord(){
+ if(!A()){$('alS').textContent=NOAND;$('alList').innerHTML='';return;}
+ var st=alState(),w=st.words||[];
+ $('alA11y').innerHTML=st.a11y?'':'<div class="card"><div class="row"><div class="t">Maxsus imkoniyat (Accessibility) xizmatini yoqing</div><button onclick="openA11y()">Sozlamalar</button></div></div>';
+ $('alS').textContent=st.on?'Yoqilgan':'O‘chiq';
+ $('alTog').textContent=st.on?'Yoqilgan':'Yoqish';$('alTog').disabled=false;
+ $('alHits').textContent=st.hits||0;
+ $('alList').innerHTML=w.length?w.map(function(x,i){return '<div class="row"><div class="t"><b>'+E(x)+'</b></div><button class="dn" onclick="alDel('+i+')">×</button></div>';}).join(''):'<div class="empty">Ro‘yxat bo‘sh. So‘zlarni o‘zingiz kiriting.</div>';}
+var AM={a11y:'Avval maxsus imkoniyat (Accessibility) xizmatini yoqing',pw_short:'Parol kamida 4 belgi bo‘lsin',bad_pw:'Noto‘g‘ri parol',wait:'Avval belgilangan muddat o‘tishi kerak',bad_wait:'Muddat 1 daqiqadan 1 yilgacha bo‘lsin',norequest:'Avval o‘chirishni boshlang'};
+function alTog(){
+ if(!A()){toast(NOAND);return;}
+ var st=alState();try{document.activeElement.blur();}catch(e){}
+ if(st.on){S('alOff','');paintWord();return;}
+ var r=S('alEnable','','0');if(r!=='ok'&&AM[r])toast(AM[r]);paintWord();}
+function alAdd(){
+ if(!A()){toast(NOAND);return;}
+ var e=$('alWi'),v=(e.value||'').trim();if(!v)return;
+ var w=(alState().words||[]).slice();w.push(v);S('alWords',JSON.stringify(w));e.value='';paintWord();}
+function alDel(i){
+ var w=(alState().words||[]).slice();w.splice(i,1);S('alWords',JSON.stringify(w));paintWord();}
+function backupWords(){saveFile('sozlar','words','words',alState().words||[]);}
+function restoreWords(files){if(!A()){toast(NOAND);return;}
+ readList(files,'words','words',function(n){
+  var low=[],all=[];n.forEach(function(x){if(x.length>60)return;if(low.indexOf(x.toLowerCase())<0){low.push(x.toLowerCase());all.push(x);}});
+  if(!all.length){toast('Zahira fayli noto‘g‘ri.');return;}
+  S('alWords',JSON.stringify(all));var now=alState().words||[];paintWord();
+  var extra=now.length-all.length;
+  toast('Tiklandi: '+all.length+' ta so‘z.'+(extra>0?' Filtr yoqilgani uchun eski '+extra+' ta so‘z ham qoldi.':''));});}
+
+/* ================= 4. QATTIQ REJIMNI BEKOR QILISH ================= */
+function relLeft(){try{return +A().relLockLeft()||0;}catch(e){return 0;}}
+function paintRel(){
+ var lf=A()?relLeft():0;
+ $('relInfo').innerHTML=!A()?NOAND:(lf>0?'<span class="bad">Bekor qilish hozir yopiq.</span> Qolgan vaqt: <b>'+Math.ceil(lf/86400000)+' kun</b>.':'Yopiq muddat yo‘q yoki tugagan: bekor qilish mumkin.');
+ $('relBtn').disabled=!A()||lf>0;}
+function release(){
+ if(!A()){toast(NOAND);return;}
+ var lf=relLeft();
+ if(lf>0){toast('Qattiq rejimni bekor qilish 40 kunga yopiq. Qolgan: '+Math.ceil(lf/86400000)+' kun.');return;}
+ if(!confirm('Barcha kunlik limitlar, vaqtli bloklar, jadvallar, saytlar va so‘z filtri bekor qilinadi. Ilovani o‘chirish mumkin bo‘ladi. Davom etasizmi?'))return;
+ var r=S('blkRelease');
+ if(r==='ok'){paint();toast('Barcha qattiq rejimlar o‘chirildi. Ilovani endi o‘chirish mumkin.');}
+ else if(r==='locked')toast('Qattiq rejimni bekor qilish 40 kunga yopiq.');
+ else toast('Bajarib bo‘lmadi.');}
+
+/* ================= bosh sahifa va yangilash ================= */
+function paintHome(){
+ if(!A()){$('hLim').textContent=$('hSite').textContent=$('hWord').textContent=$('hRel').textContent='';paintSetup();return;}
+ var L=limGet();$('hLim').textContent=Object.keys(L.list||{}).length+' ta ilova limiti';
+ var s=sbGet()||{};$('hSite').textContent=(s.on?'Yoniq':'O‘chiq')+' · '+((s.domains||[]).length)+' ta sayt';
+ var a=alState();$('hWord').textContent=(a.on?'Yoniq':'O‘chiq')+' · '+((a.words||[]).length)+' ta so‘z';
+ var lf=relLeft();$('hRel').textContent=lf>0?'Yopiq: '+Math.ceil(lf/86400000)+' kun qoldi':'Mumkin';
+ paintSetup();}
+function paint(){
+ sendTexts();
+ if(CUR==='home')paintHome();else if(CUR==='lim')paintLim();else if(CUR==='site')paintSite();
+ else if(CUR==='word'){var a=document.activeElement;if(!(a&&a.id==='alWi'))paintWord();}
+ else if(CUR==='rel')paintRel();}
+document.addEventListener('visibilitychange',function(){if(!document.hidden)paint();});
+setInterval(function(){if(!document.hidden)paint();},3000);
+(function(){var n=(location.hash||'').slice(1);if(!$('s-'+n))n='home';show(n);})();
+</script>
+</body>
+</html>
