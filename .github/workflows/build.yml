@@ -23,10 +23,19 @@ jobs:
           mkdir -p www native
           cp index.html manifest.webmanifest icon-192.png icon-512.png www/
           unzip -o native.zip -d native
+          mkdir -p native/assets
+          if [ -f model/nsfw.tflite ]; then cp model/nsfw.tflite native/assets/; cp -f model/nsfw_labels.txt native/assets/ 2>/dev/null || true; else echo "::warning::model/nsfw.tflite topilmadi - rasm filtri model bo'lmaguncha ishlamaydi"; fi
+      - name: Rasm filtri modeli
+        continue-on-error: true
+        run: |
+          if [ -f native/assets/nsfw.tflite ]; then echo "model repoda tayyor"; else
+            pip install "tensorflow==2.15.1" "tensorflow-hub==0.16.1" "numpy<2"
+            python3 tools/make_model.py || echo "::warning::model yaratilmadi - rasm filtri ishlamaydi (model/nsfw.tflite ni qo'lda qo'ying)"
+          fi
       - run: npm install
       - run: npx cap add android
       - name: Native kod
-        run: python3 inject.py
+        run: python3 native/inject.py
       - name: Ikonka
         run: |
           pip install pillow
