@@ -21,6 +21,12 @@
   button.stop { background:#3a2326; color:#ff8a80; }
   input[type=range] { width:100%; margin:12px 0 4px; }
   .hint { color:var(--muted); font-size:13px; }
+  input[type=search] { width:100%; margin:12px 0 6px; padding:12px; border-radius:12px; border:0; background:#2a2f3a; color:var(--text); font-size:15px; }
+  .app { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 0; border-top:1px solid #262a33; }
+  .app .info { min-width:0; flex:1; }
+  .app .nm { font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .app select { background:#2a2f3a; color:var(--text); border:0; border-radius:10px; padding:8px; font-size:14px; max-width:130px; }
+  .over { color:var(--bad); }
   #msg { min-height:20px; color:#ffb74d; font-size:14px; margin:8px 2px; }
 </style>
 </head>
@@ -41,9 +47,17 @@
   <button id="b-stop" class="stop">Himoyani to'xtatish</button>
 
   <div class="card" style="margin-top:18px">
-    <div class="row"><span>Sezgirlik chegarasi</span><b id="thr">70%</b></div>
-    <input type="range" id="slider" min="50" max="95" value="70">
+    <div class="row"><span>Sezgirlik chegarasi</span><b id="thr">50%</b></div>
+    <input type="range" id="slider" min="20" max="95" value="50">
     <div class="hint">Kichik qiymat = sezgirroq (ko'proq ogohlantirish), katta qiymat = aniqroq.</div>
+  </div>
+
+  <div class="card">
+    <div class="row"><span>Ilova limitlari</span><span class="dot" id="d-usage"></span></div>
+    <div class="hint" id="usage-hint">Limit qo'yilgan ilova kunlik vaqti tugagach yopiladi (har kuni 00:00 da yangilanadi). Buning uchun statistika ruxsati va Accessibility kerak.</div>
+    <button id="b-usage" class="sec">Foydalanish statistikasiga ruxsat</button>
+    <input type="search" id="q" placeholder="Ilova qidirish...">
+    <div id="apps"></div>
   </div>
 
 <script>
@@ -65,6 +79,7 @@
       $('d-run').classList.toggle('on', !!s.running);
       $('slider').value = s.threshold;
       $('thr').textContent = s.threshold + '%';
+      $('d-usage').classList.toggle('on', !!s.usage);
     } catch (e) { say(String(e.message || e)); }
   }
 
@@ -79,9 +94,82 @@
   $('slider').oninput = e => { $('thr').textContent = e.target.value + '%'; };
   $('slider').onchange = async e => { if (G) await G.setThreshold({ value: parseInt(e.target.value, 10) }); };
 
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
+  // ---- Ilova limitlari ----
+  const OPTS = [[0,'Cheklovsiz'],[15,'15 daq'],[30,'30 daq'],[45,'45 daq'],[60,'1 soat'],
+                [90,'1.5 soat'],[120,'2 soat'],[180,'3 soat'],[240,'4 soat']];
+  let APPS = [];
+  const SPAN = {};
+  const fmt = m => m >= 60 ? Math.floor(m / 60) + ' s ' + (m % 60) + ' daq' : m + ' daq';
+
+  function usageText(a) {
+    if (!a.limit) return 'Bugun: ' + fmt(a.usedMin);
+    const left = a.limit - a.usedMin;
+    return 'Bugun: ' + fmt(a.usedMin) + ' · ' + (left > 0 ? 'qoldi: ' + fmt(left) : 'limit tugadi');
+  }
+
+  function render() {
+    const q = $('q').value.trim().toLowerCase();
+    const box = $('apps');
+    box.textContent = '';
+    APPS.filter(a => !q || a.name.toLowerCase().includes(q)).forEach(a => {
+      const row = document.createElement('div'); row.className = 'app';
+      const info = document.createElement('div'); info.className = 'info';
+      const nm = document.createElement('div'); nm.className = 'nm'; nm.textContent = a.name;
+      const u = document.createElement('div'); u.className = 'hint'; u.textContent = usageText(a);
+      u.classList.toggle('over', a.limit > 0 && a.usedMin >= a.limit);
+      SPAN[a.pkg] = u;
+      info.appendChild(nm); info.appendChild(u);
+      const sel = document.createElement('select');
+      const opts = OPTS.slice();
+      if (!opts.some(o => o[0] === a.limit)) opts.push([a.limit, fmt(a.limit)]);
+      opts.forEach(o => {
+        const op = document.createElement('option');
+        op.value = o[0]; op.textContent = o[1]; op.selected = o[0] === a.limit;
+        sel.appendChild(op);
+      });
+      sel.onchange = async () => {
+        a.limit = parseInt(sel.value, 10);
+        u.textContent = usageText(a);
+        u.classList.toggle('over', a.limit > 0 && a.usedMin >= a.limit);
+        if (G) { try { await G.setLimit({ pkg: a.pkg, minutes: a.limit }); } catch (e) { say(String(e.message || e)); } }
+      };
+      row.appendChild(info); row.appendChild(sel);
+      box.appendChild(row);
+    });
+  }
+
+  async function loadApps() {
+    if (!G) return;
+    try {
+      const r = await G.getApps();
+      APPS = r.apps || [];
+      $('d-usage').classList.toggle('on', !!r.usage);
+      render();
+    } catch (e) { say(String(e.message || e)); }
+  }
+
+  async function updateUsage() {
+    if (!G || document.hidden) return;
+    try {
+      const r = await G.getApps();
+      (r.apps || []).forEach(n => {
+        const a = APPS.find(x => x.pkg === n.pkg);
+        if (!a) return;
+        a.usedMin = n.usedMin;
+        const u = SPAN[a.pkg];
+        if (u) { u.textContent = usageText(a); u.classList.toggle('over', a.limit > 0 && a.usedMin >= a.limit); }
+      });
+    } catch (e) { }
+  }
+
+  $('b-usage').onclick = async () => { say(''); if (G) await G.openUsageAccess(); };
+  $('q').oninput = render;
+  setInterval(updateUsage, 30000);
+
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { refresh(); loadApps(); } });
   setInterval(refresh, 3000);
   refresh();
+  loadApps();
 </script>
 </body>
 </html>
