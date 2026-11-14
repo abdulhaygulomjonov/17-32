@@ -26,6 +26,7 @@ jobs:
       - name: Model tayyorlash (nsfw.tflite)
         env:
           MODEL_URL: ${{ vars.MODEL_URL }}
+          GITHUB_TOKEN: ${{ github.token }}
           TF_USE_LEGACY_KERAS: "1"
         run: |
           if [ -f nsfw.tflite ]; then
@@ -34,19 +35,7 @@ jobs:
             curl -L --fail "$MODEL_URL" -o nsfw.tflite
           else
             pip install "tensorflow==2.15.1" "tf-keras==2.15.1" "tensorflow-hub==0.16.1"
-            ok=0
-            for u in \
-              "https://github.com/GantMan/nsfw_model/releases/download/1.1.0/nsfw_mobilenet2.224x224.h5" \
-              "https://github.com/GantMan/nsfw_model/raw/master/nsfw_mobilenet2.224x224.h5" \
-              "https://s3.amazonaws.com/ir_public/nsfwjscdn/nsfw_mobilenet2.224x224.h5"; do
-              echo "Urinish: $u"
-              if curl -L --fail --retry 2 -o nsfw.h5 "$u"; then ok=1; break; fi
-            done
-            if [ "$ok" != "1" ]; then
-              echo "::error::Model yuklab bo'lmadi. nsfw.tflite ni repo ildiziga yuklang yoki MODEL_URL o'zgaruvchisini kiriting."
-              exit 1
-            fi
-            python tools/make_model.py nsfw.h5 nsfw.tflite
+            python tools/fetch_model.py
           fi
           ls -la nsfw.tflite
 
