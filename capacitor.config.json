@@ -1,8 +1,5 @@
 {
-  "appId": "uz.sanalar.app",
+  "appId": "com.guard1732",
   "appName": "17-32",
-  "webDir": "www",
-  "server": { "androidScheme": "https" },
-  "android": { "backgroundColor": "#0b1620" },
-  "plugins": { "CapacitorHttp": { "enabled": true } }
+  "webDir": "www"
 }

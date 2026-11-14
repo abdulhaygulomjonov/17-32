@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>17-32</title>
+<style>
+  :root { --bg:#0f1115; --card:#1a1d24; --text:#eceff4; --muted:#8b93a1; --ok:#35c46a; --bad:#ef5350; --accent:#4c8dff; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,Roboto,sans-serif;
+         padding: calc(env(safe-area-inset-top,0px) + 20px) 16px calc(env(safe-area-inset-bottom,0px) + 20px); }
+  h1 { font-size:28px; margin:0 0 4px; }
+  .sub { color:var(--muted); font-size:14px; margin-bottom:20px; }
+  .card { background:var(--card); border-radius:16px; padding:16px; margin-bottom:14px; }
+  .row { display:flex; align-items:center; justify-content:space-between; padding:8px 0; font-size:16px; }
+  .dot { width:12px; height:12px; border-radius:50%; background:var(--bad); }
+  .dot.on { background:var(--ok); }
+  button { width:100%; border:0; border-radius:12px; padding:14px; font-size:16px; font-weight:600; margin-top:10px;
+           background:var(--accent); color:#fff; }
+  button.sec { background:#2a2f3a; color:var(--text); }
+  button.stop { background:#3a2326; color:#ff8a80; }
+  input[type=range] { width:100%; margin:12px 0 4px; }
+  .hint { color:var(--muted); font-size:13px; }
+  #msg { min-height:20px; color:#ffb74d; font-size:14px; margin:8px 2px; }
+</style>
+</head>
+<body>
+  <h1>17-32</h1>
+  <div class="sub">Nomaqbul kontent qo'riqchisi</div>
+
+  <div class="card">
+    <div class="row"><span>Accessibility</span><span class="dot" id="d-acc"></span></div>
+    <div class="row"><span>Model</span><span class="dot" id="d-model"></span></div>
+    <div class="row"><span>Himoya</span><span class="dot" id="d-run"></span></div>
+  </div>
+
+  <div id="msg"></div>
+
+  <button id="b-acc" class="sec">1. Accessibility'ni yoqish</button>
+  <button id="b-start">2. Himoyani boshlash</button>
+  <button id="b-stop" class="stop">Himoyani to'xtatish</button>
+
+  <div class="card" style="margin-top:18px">
+    <div class="row"><span>Sezgirlik chegarasi</span><b id="thr">70%</b></div>
+    <input type="range" id="slider" min="50" max="95" value="70">
+    <div class="hint">Kichik qiymat = sezgirroq (ko'proq ogohlantirish), katta qiymat = aniqroq.</div>
+  </div>
+
+<script>
+  const G = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Guard) || null;
+  const $ = id => document.getElementById(id);
+  const say = t => { $('msg').textContent = t || ''; };
+  const ERR = {
+    accessibility: "Avval Accessibility'da 17-32 ni yoqing.",
+    model: "Model (nsfw.tflite) ilovada yo'q.",
+    denied: "Ekran yozish ruxsati berilmadi. \"Butun ekran\" ni tanlang."
+  };
+
+  async function refresh() {
+    if (!G) { say("Bu sahifa faqat ilova ichida ishlaydi."); return; }
+    try {
+      const s = await G.getStatus();
+      $('d-acc').classList.toggle('on', !!s.accessibility);
+      $('d-model').classList.toggle('on', !!s.model);
+      $('d-run').classList.toggle('on', !!s.running);
+      $('slider').value = s.threshold;
+      $('thr').textContent = s.threshold + '%';
+    } catch (e) { say(String(e.message || e)); }
+  }
+
+  $('b-acc').onclick = async () => { say(''); if (G) await G.openAccessibility(); };
+  $('b-start').onclick = async () => {
+    say('');
+    if (!G) return;
+    try { await G.startProtection(); } catch (e) { say(ERR[e.message] || String(e.message || e)); }
+    setTimeout(refresh, 800);
+  };
+  $('b-stop').onclick = async () => { say(''); if (G) await G.stopProtection(); setTimeout(refresh, 400); };
+  $('slider').oninput = e => { $('thr').textContent = e.target.value + '%'; };
+  $('slider').onchange = async e => { if (G) await G.setThreshold({ value: parseInt(e.target.value, 10) }); };
+
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
+  setInterval(refresh, 3000);
+  refresh();
+</script>
+</body>
+</html>
