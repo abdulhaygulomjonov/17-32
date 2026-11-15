@@ -23,12 +23,30 @@ jobs:
         with:
           python-version: "3.10"
 
-      - name: Model tayyorlash (nsfw.tflite)
+      - name: NudeNet modeli (nudenet.onnx)
+        env:
+          NUDENET_URL: ${{ vars.NUDENET_URL }}
+        run: |
+          URL="${NUDENET_URL:-https://github.com/notAI-tech/NudeNet/releases/download/v3.4-weights/320n.onnx}"
+          if [ -f nudenet.onnx ]; then
+            echo "Repo ichidagi nudenet.onnx ishlatiladi"
+          elif curl -L --fail "$URL" -o nudenet.onnx; then
+            ls -la nudenet.onnx
+          else
+            rm -f nudenet.onnx
+            echo "::warning::nudenet.onnx yuklanmadi, eski nsfw.tflite modeliga o'tiladi"
+          fi
+
+      - name: Zaxira model (nsfw.tflite)
         env:
           MODEL_URL: ${{ vars.MODEL_URL }}
           GITHUB_TOKEN: ${{ github.token }}
           TF_USE_LEGACY_KERAS: "1"
         run: |
+          if [ -f nudenet.onnx ]; then
+            echo "NudeNet bor, nsfw.tflite kerak emas"
+            exit 0
+          fi
           if [ -f nsfw.tflite ]; then
             echo "Repo ichidagi nsfw.tflite ishlatiladi"
           elif [ -n "$MODEL_URL" ]; then
