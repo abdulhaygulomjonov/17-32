@@ -114,7 +114,7 @@
   $('b-start').onclick = async () => {
     say('');
     if (!G) return;
-    try { await G.startProtection(); } catch (e) { say(ERR[e.message] || String(e.message || e)); }
+    try { await G.startProtection(); } catch (e) { const m = String(e.message || e); say((ERR[m] || ERR[m.split(' ')[0]] || '') + ' [' + m + ']'); }
     setTimeout(refresh, 800);
   };
   $('b-stop').onclick = async () => { say(''); if (G) await G.stopProtection(); setTimeout(refresh, 400); };
