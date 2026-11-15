@@ -27,6 +27,10 @@
   .app .nm { font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .app select { background:#2a2f3a; color:var(--text); border:0; border-radius:10px; padding:8px; font-size:14px; max-width:130px; }
   .over { color:var(--bad); }
+  .sw { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; padding:10px 0; border-top:1px solid #262a33; }
+  .sw:first-of-type { border-top:0; }
+  .sw .t { font-size:16px; } .sw .hint { margin-top:2px; }
+  .sw input { width:22px; height:22px; margin-top:2px; flex:none; accent-color:var(--accent); }
   #msg { min-height:20px; color:#ffb74d; font-size:14px; margin:8px 2px; }
 </style>
 </head>
@@ -47,9 +51,23 @@
   <button id="b-stop" class="stop">Himoyani to'xtatish</button>
 
   <div class="card" style="margin-top:18px">
-    <div class="row"><span>Sezgirlik chegarasi</span><b id="thr">50%</b></div>
-    <input type="range" id="slider" min="20" max="95" value="50">
+    <div class="row"><span>Sezgirlik chegarasi</span><b id="thr">60%</b></div>
+    <input type="range" id="slider" min="40" max="95" value="60">
     <div class="hint">Kichik qiymat = sezgirroq (ko'proq ogohlantirish), katta qiymat = aniqroq.</div>
+  </div>
+
+  <div class="card">
+    <div class="row"><span>Himoya tizimlari</span></div>
+    <label class="sw"><div><div class="t">1. Ochiq jinsiy a'zolar</div>
+      <div class="hint">NudeNet faqat ochiq tana a'zolarini topadi. Yuz va kiyimli tanani bloklamaydi.</div></div>
+      <input type="checkbox" id="m1"></label>
+    <label class="sw"><div><div class="t">2. Uyatsiz kiyim (lifchik, sochiq)</div>
+      <div class="hint">Yopiq, lekin ochiq-sochiq kiyimdagilar. Oddiy rasmlarni ham ba'zan bloklashi mumkin.</div></div>
+      <input type="checkbox" id="m2"></label>
+    <label class="sw"><div><div class="t">3. Mayda rasmlar</div>
+      <div class="hint">Avatar va kichik rasmlarni ham tekshiradi, har safar 2 skanerda tasdiqlaydi. Batareyani ko'proq sarflaydi.</div></div>
+      <input type="checkbox" id="m3"></label>
+    <div class="hint" id="mode-hint"></div>
   </div>
 
   <div class="card">
@@ -80,8 +98,17 @@
       $('slider').value = s.threshold;
       $('thr').textContent = s.threshold + '%';
       $('d-usage').classList.toggle('on', !!s.usage);
+      ['m1', 'm2', 'm3'].forEach(k => {
+        const el = $(k);
+        if (document.activeElement !== el) el.checked = !!s[k];
+        el.disabled = !s.detector;
+      });
+      $('mode-hint').textContent = s.detector ? '' : "Bu tizimlar uchun NudeNet modeli (nudenet.onnx) kerak. Hozir eski model ishlayapti.";
     } catch (e) { say(String(e.message || e)); }
   }
+  ['m1', 'm2', 'm3'].forEach(k => {
+    $(k).onchange = async e => { if (G) { try { await G.setMode({ key: k, value: e.target.checked }); } catch (x) { say(String(x.message || x)); } } };
+  });
 
   $('b-acc').onclick = async () => { say(''); if (G) await G.openAccessibility(); };
   $('b-start').onclick = async () => {
