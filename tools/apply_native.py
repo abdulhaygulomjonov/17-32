@@ -27,20 +27,28 @@ open(p, "w", encoding="utf-8").write(s)
 # 3) TensorFlow Lite bog'liqligi
 p = "android/app/build.gradle"
 s = open(p, encoding="utf-8").read()
-dep = "implementation 'org.tensorflow:tensorflow-lite:2.14.0'"
-if dep not in s:
-    s, n = re.subn(r"(\ndependencies\s*\{)", lambda m: m.group(1) + "\n    " + dep, s, count=1)
-    if n == 0:
-        sys.exit("android/app/build.gradle ichida dependencies bloki topilmadi")
+deps = [
+    "implementation 'org.tensorflow:tensorflow-lite:2.14.0'",
+    "implementation 'com.microsoft.onnxruntime:onnxruntime-android:1.17.1'",
+]
+for dep in deps:
+    if dep not in s:
+        s, n = re.subn(r"(\ndependencies\s*\{)", lambda m: m.group(1) + "\n    " + dep, s, count=1)
+        if n == 0:
+            sys.exit("android/app/build.gradle ichida dependencies bloki topilmadi")
 open(p, "w", encoding="utf-8").write(s)
 print("Gradle moslandi")
 
 # 4) model
-if not os.path.exists("nsfw.tflite"):
-    sys.exit("nsfw.tflite topilmadi")
 os.makedirs("android/app/src/main/assets", exist_ok=True)
-shutil.copy("nsfw.tflite", "android/app/src/main/assets/nsfw.tflite")
-print("Model joylandi")
+found = False
+for m in ("nudenet.onnx", "nsfw.tflite"):
+    if os.path.exists(m):
+        shutil.copy(m, os.path.join("android/app/src/main/assets", m))
+        print("Model joylandi:", m)
+        found = True
+if not found:
+    sys.exit("Model topilmadi: nudenet.onnx ham, nsfw.tflite ham yo'q")
 
 # 5) ikonka: icon-192.png / icon-512.png -> ilova ikonkasi
 src_icon = "icon-512.png" if os.path.exists("icon-512.png") else "icon-192.png"
