@@ -29,7 +29,7 @@ p = "android/app/build.gradle"
 s = open(p, encoding="utf-8").read()
 deps = [
     "implementation 'org.tensorflow:tensorflow-lite:2.14.0'",
-    "implementation 'com.microsoft.onnxruntime:onnxruntime-android:1.17.1'",
+    "implementation 'com.microsoft.onnxruntime:onnxruntime-android:1.19.2'",
 ]
 for dep in deps:
     if dep not in s:
