@@ -146,14 +146,17 @@
   }
 
   // ---- Avtomatik ishga tushirish ----
-  let starting = false, lastFail = 0, stoppedByUser = false;
+  let starting = false, lastFail = 0, lastStart = 0, stoppedByUser = false;
 
   async function autoStart(s) {
     if (!G || starting || stoppedByUser || document.hidden) return;
+    if (s.error) say('Himoya xatosi: ' + s.error);
     if (s.running || !s.accessibility || !s.model) return;
     if (Date.now() - lastFail < 60000) return;   // rad etilsa 1 daqiqa kutadi
+    if (Date.now() - lastStart < 20000) return;  // ruxsat berilgach xizmat ishga tushishiga vaqt beriladi
     starting = true;
     try {
+      lastStart = Date.now();
       await G.startProtection();
       say('');
     } catch (e) {
@@ -162,7 +165,7 @@
       say((ERR[m] || ERR[m.split(' ')[0]] || '') + ' [' + m + ']' + (m.indexOf('denied') === 0 ? " Yuqoridagi ruxsatlarni (ayniqsa \"Fonda ochiladigan oynalar\") yoqing, 1 daqiqadan keyin o'zi qayta so'raydi." : ''));
     }
     starting = false;
-    setTimeout(refresh, 800);
+    setTimeout(refresh, 1500);
   }
 
   $('b-stop').onclick = async () => {
