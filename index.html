@@ -88,7 +88,7 @@
     return null;
   }
 
-  let flow = false, waitingFor = null, hiddenSeen = false, busy = false;
+  let flow = false, waitingFor = null, hiddenSeen = false, busy = false, bootWait = 0;
 
   async function step() {
     if (!G || busy) return;
@@ -116,7 +116,7 @@
       }
       flow = false; waitingFor = null;
       try {
-        say('Ekran yozish ruxsatini bering...');
+        say('Tizim yoqilmoqda...');
         await G.startProtection();
         say('Tizim ishga tushdi.');
       } catch (e) {
@@ -159,6 +159,15 @@
     if (!G) { $('state').textContent = "Faqat ilova ichida ishlaydi"; return; }
     try {
       const s = await G.getStatus();
+      // telefon qayta yoqilgandan keyin: ekran yozish ruxsatini o'zi so'raydi
+      if (s.autostart && !busy) {
+        if (s.running) { bootWait = 0; await G.consumeAutostart(); }
+        else if (s.accessibility || ++bootWait > 5) {   // accessibility ulanishini ~15 s kutadi
+          bootWait = 0;
+          await G.consumeAutostart();
+          if (s.accessibility) { flow = true; waitingFor = null; hiddenSeen = false; step(); }
+        }
+      }
       const on = !!(s.running && s.accessibility);
       $('d-run').classList.toggle('on', on);
       $('state').textContent = on ? "Tizim ishlayapti" : "Tizim o'chiq";
