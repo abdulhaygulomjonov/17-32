@@ -148,12 +148,24 @@
   // ---- Avtomatik ishga tushirish ----
   let starting = false, lastFail = 0, lastStart = 0, stoppedByUser = false;
 
+  const BUILD = 'v3-diag';
+  function showDbg(s) {
+    let el = $('dbg');
+    if (!el) {
+      el = document.createElement('pre'); el.id = 'dbg';
+      el.style.cssText = 'white-space:pre-wrap;word-break:break-all;font-size:11px;color:#9aa;margin:12px 16px;padding:8px;border:1px dashed #445;border-radius:8px';
+      document.body.appendChild(el);
+    }
+    el.textContent = 'Diagnostika [' + BUILD + ']\n' + (s.log || '(log bo\'sh)');
+  }
+
   async function autoStart(s) {
     if (!G || starting || stoppedByUser || document.hidden) return;
     if (s.error) say('Himoya xatosi: ' + s.error);
+    showDbg(s);
     if (s.running || !s.accessibility || !s.model) return;
     if (Date.now() - lastFail < 60000) return;   // rad etilsa 1 daqiqa kutadi
-    if (Date.now() - lastStart < 20000) return;  // ruxsat berilgach xizmat ishga tushishiga vaqt beriladi
+    if (Date.now() - lastStart < 60000) return;  // ruxsat berilgach xizmat ishga tushishiga vaqt beriladi
     starting = true;
     try {
       lastStart = Date.now();
