@@ -30,11 +30,25 @@ jobs:
           URL="${NUDENET_URL:-https://github.com/notAI-tech/NudeNet/releases/download/v3.4-weights/320n.onnx}"
           if [ -f nudenet.onnx ]; then
             echo "Repo ichidagi nudenet.onnx ishlatiladi"
-          elif curl -L --fail "$URL" -o nudenet.onnx; then
+          elif curl -L --fail --retry 3 "$URL" -o nudenet.onnx; then
             ls -la nudenet.onnx
           else
             rm -f nudenet.onnx
             echo "::warning::nudenet.onnx yuklanmadi, eski nsfw.tflite modeliga o'tiladi"
+          fi
+
+      - name: nudenet.onnx ni tekshirish
+        run: |
+          if [ -f nudenet.onnx ]; then
+            ls -la nudenet.onnx
+            head -c 64 nudenet.onnx | xxd | head -4
+            pip install -q onnxruntime==1.19.2
+            if python3 -c "import onnxruntime as o; s=o.InferenceSession('nudenet.onnx'); print('IN', s.get_inputs()[0].shape, 'OUT', [x.shape for x in s.get_outputs()])"; then
+              echo "nudenet.onnx yaroqli"
+            else
+              echo "::warning::nudenet.onnx buzuq, o'chirildi, zaxira modelga o'tiladi"
+              rm -f nudenet.onnx
+            fi
           fi
 
       - name: Zaxira model (nsfw.tflite)
