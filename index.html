@@ -9,7 +9,7 @@
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body { margin:0; background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,Roboto,sans-serif;
          padding: calc(env(safe-area-inset-top,0px) + 28px) 20px calc(env(safe-area-inset-bottom,0px) + 28px); }
-  h1 { font-size:32px; margin:0 0 4px; text-align:center; }
+  h1 { font-size:32px; margin:0 0 28px; text-align:center; }
   .sub { color:var(--muted); font-size:14px; margin-bottom:28px; text-align:center; }
   .state { text-align:center; font-size:16px; margin-bottom:6px; display:flex; align-items:center; justify-content:center; gap:10px; }
   .dot { width:12px; height:12px; border-radius:50%; background:var(--bad); }
@@ -35,19 +35,28 @@
   .tail select { flex:1; }
   .ctl button { margin:0; padding:9px 14px; font-size:14px; width:auto; flex:1; background:#2a2f3a; color:var(--text); }
   .over { color:var(--bad); }
+  input[type=password] { width:100%; margin:12px 0 6px; padding:12px; border-radius:12px; border:0; background:#2a2f3a; color:var(--text); font-size:18px; text-align:center; }
+  #pw { display:none; position:fixed; inset:0; background:rgba(0,0,0,.75); align-items:center; justify-content:center; z-index:9; }
+  #pw .card { width:86%; margin:0; }
   #dbg { display:none; white-space:pre-wrap; word-break:break-all; font-size:11px; color:#9aa; margin-top:20px;
          padding:8px; border:1px dashed #445; border-radius:8px; }
 </style>
 </head>
 <body>
   <h1 id="title">17-32</h1>
-  <div class="sub">Nomaqbul kontent qo'riqchisi</div>
 
   <div class="state"><span class="dot" id="d-run"></span><span id="state">Tekshirilmoqda...</span></div>
   <div id="msg"></div>
 
   <button id="b-start">Tizimni ishga tushirish</button>
   <button id="b-stop" class="stop">Tizimni o'chirish</button>
+
+  <div id="pw"><div class="card">
+    <div id="pw-t">Parolni kiriting</div>
+    <input id="pw-i" type="password" inputmode="numeric" autocomplete="off">
+    <button id="pw-ok">Tasdiqlash</button>
+    <button id="pw-no" class="stop">Bekor qilish</button>
+  </div></div>
 
   <div class="card">
     <div class="row"><span>Ilova limitlari</span></div>
@@ -88,7 +97,7 @@
     return null;
   }
 
-  let flow = false, waitingFor = null, hiddenSeen = false, busy = false, bootWait = 0;
+  let flow = false, waitingFor = null, hiddenSeen = false, busy = false, bootWait = 0, vpnTried = false;
 
   async function step() {
     if (!G || busy) return;
@@ -116,6 +125,12 @@
       }
       flow = false; waitingFor = null;
       try {
+        // 1) qurilma administratori: ilovani parolsiz o'chirib bo'lmaydi
+        say("Qurilma administratori: 17-32 ni faollashtiring.");
+        try { await G.requestAdmin(); } catch (e) { say("Administrator yoqilmadi: ilovani o'chirishdan himoya ishlamaydi."); await sleep(1800); }
+        // 2) DNS filtr (VPN): bir martalik tizim ruxsati
+        say("DNS himoya: VPN so'roviga \"OK\" ni bosing.");
+        try { await G.startVpn(); } catch (e) { say("DNS himoya yoqilmadi."); await sleep(1800); }
         say('Tizim yoqilmoqda...');
         await G.startProtection();
         say('Tizim ishga tushdi.');
@@ -139,11 +154,32 @@
     step();
   };
 
+  function askPassword(title) {
+    return new Promise(res => {
+      const m = $('pw'), i = $('pw-i');
+      $('pw-t').textContent = title;
+      i.value = '';
+      m.style.display = 'flex';
+      setTimeout(() => i.focus(), 100);
+      const done = v => { m.style.display = 'none'; $('pw-ok').onclick = null; $('pw-no').onclick = null; res(v); };
+      $('pw-ok').onclick = () => done(i.value);
+      $('pw-no').onclick = () => done(null);
+    });
+  }
+  function pwError(e) {
+    const m = String(e.message || e);
+    if (m === 'parol') return "Parol noto'g'ri.";
+    if (m === 'kutish') return "Ko'p marta xato kiritildi. 1 daqiqadan keyin urinib ko'ring.";
+    return m;
+  }
+
   $('b-stop').onclick = async () => {
+    const pw = await askPassword("Tizimni o'chirish uchun parolni kiriting");
+    if (pw === null) return;
     flow = false; waitingFor = null;
     say('');
     if (G) {
-      try { await G.stopProtection(); say("Tizim o'chirildi."); } catch (e) { say(String(e.message || e)); }
+      try { await G.stopProtection({ password: pw }); say("Tizim o'chirildi."); } catch (e) { say(pwError(e)); }
     }
     setTimeout(refresh, 600);
   };
@@ -168,9 +204,15 @@
           if (s.accessibility) { flow = true; waitingFor = null; hiddenSeen = false; step(); }
         }
       }
+      // DNS filtr o'chib qolgan bo'lsa (masalan boshqa VPN yoqilgan), qayta yoqamiz
+      if (s.vpn) vpnTried = false;
+      else if (s.armed && s.accessibility && !busy && !vpnTried) {
+        vpnTried = true;
+        try { await G.startVpn(); } catch (e) { }
+      }
       const on = !!(s.running && s.accessibility);
       $('d-run').classList.toggle('on', on);
-      $('state').textContent = on ? "Tizim ishlayapti" : "Tizim o'chiq";
+      $('state').textContent = on ? (s.vpn ? "Tizim ishlayapti" : "Tizim ishlayapti (DNS himoya o'chiq)") : "Tizim o'chiq";
       if (s.error && !flow) say('Xato: ' + s.error);
       $('dbg').textContent = 'Diagnostika\n' + (s.log || "(log bo'sh)");
     } catch (e) { say(String(e.message || e)); }
